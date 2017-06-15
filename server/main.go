@@ -2,8 +2,12 @@ package main
 
 import (
 	"encoding/json"
+	"log"
 	"math"
 
+	"net"
+
+	"github.com/godcong/cor"
 	"github.com/golang/protobuf/proto"
 )
 
@@ -46,4 +50,45 @@ func (this *Helloworld) GetOpt() int32 {
 
 func main() {
 
+}
+
+type Server struct {
+}
+
+//init server
+func NewServer() *Server {
+	s := new(Server)
+	return s
+}
+
+//listen start
+func (s *Server) Start() error {
+	if s == nil {
+		return cor.NIL_TARGET
+	}
+
+	listen, err := net.ListenTCP(cor.ListenType(), cor.TCPAddr())
+	if err != nil {
+		panic(err)
+	}
+
+	for {
+
+		conn, err := listen.AcceptTCP()
+		if err != nil {
+			log.Println("receive connection failed: ", err.Error())
+			continue
+		}
+
+		log.Println("connected from " + conn.RemoteAddr().String())
+		go handleClient(conn)
+
+	}
+
+	defer listen.Close()
+	return nil
+}
+
+func handleClient(conn *net.TCPConn) {
+	log.Println(conn)
 }
