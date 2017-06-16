@@ -5,19 +5,29 @@ import (
 	"sync"
 )
 
-type Pipe list.List
+type Pipe struct {
+	*list.List
+	sync.Mutex
+}
 
-var (
-	pipe  Pipe
-	mutex sync.Mutex
-)
+var pip *Pipe
 
 func init() {
-	pipe = list.New()
+	pip = new(Pipe)
+	pip.List = list.New()
+	//pip.Mutex = sync.Mutex{}
 }
 
 func (p *Pipe) Push(v interface{}) {
-	if p.Inn.Back() == nil {
-		pipe.PushBack(v)
-	}
+	p.Lock()
+	defer p.Unlock()
+	p.PushBack(v)
+}
+
+func (p *Pipe) Pop() interface{} {
+	p.Lock()
+	defer p.Unlock()
+	v := p.Front()
+	p.Remove(v)
+	return v
 }

@@ -49,31 +49,30 @@ func (this *Helloworld) GetOpt() int32 {
 }
 
 func main() {
-
+	NewServer().Start()
 }
 
-type Server struct {
+type server struct {
 }
 
 //init server
-func NewServer() *Server {
-	s := new(Server)
+func NewServer() *server {
+	s := new(server)
 	return s
 }
 
 //listen start
-func (s *Server) Start() error {
+func (s *server) Start() error {
 	if s == nil {
 		return cor.NIL_TARGET
 	}
 
-	listen, err := net.ListenTCP(cor.ListenType(), cor.TCPAddr())
+	listen, err := net.ListenTCP(cor.ConnType(), cor.TCPAddr())
 	if err != nil {
 		panic(err)
 	}
 
 	for {
-
 		conn, err := listen.AcceptTCP()
 		if err != nil {
 			log.Println("receive connection failed: ", err.Error())
@@ -91,4 +90,32 @@ func (s *Server) Start() error {
 
 func handleClient(conn *net.TCPConn) {
 	log.Println(conn)
+
+	var bytes []byte
+	var vb []byte
+	str := "123123123123123fdasfdasfdsafdsaa"
+	defer conn.Close()
+	for {
+		h, e := cor.ReadHeader(conn)
+
+		if e != nil {
+			log.Println("disconnect from "+conn.RemoteAddr().String(), e.Error())
+			break
+		}
+
+		bytes = make([]byte, h.Size())
+
+		if h.ReadOrWrite() == cor.FLAG_CLIENT_READ {
+			i, e := conn.Write([]byte(str))
+			log.Println("write:", i, e)
+		} else {
+			i, e := conn.Read(bytes)
+			log.Println("read:", i, e)
+		}
+
+		log.Println("header is ", h, string(bytes))
+
+		return
+	}
+	log.Println("value is :", string(vb), len(vb))
 }

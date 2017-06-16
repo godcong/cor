@@ -3,9 +3,7 @@ package cor
 import (
 	"net"
 
-	"strconv"
-
-	"log"
+	"strings"
 
 	"github.com/g7n3/configo"
 )
@@ -22,33 +20,50 @@ func Load(s string) error {
 	return nil
 }
 
-func GetPort() string {
+func Port() string {
 	if property != nil {
 		return property.MustGet("port", "7777")
 	}
 	return "7777"
 }
 
-func GetAddr() string {
+func Addr() string {
 	if property != nil {
-		return property.MustGet("addr", "localhost")
+		return property.MustGet("addr", "127.0.0.1")
 	}
-	return "localhost"
+	return "127.0.0.1"
 }
 
-func ListenType() string {
+func ConnType() string {
 	if property != nil {
 		return property.MustGet("type", "tcp")
 	}
 	return "tcp"
 }
 
+func NetType() string {
+	if property != nil {
+		return property.MustGet("addr", "127.0.0.1")
+	}
+	return "127.0.0.1"
+}
+
 func TCPAddr() *net.TCPAddr {
-	var addr net.TCPAddr
-	var e error
+	//var addr net.TCPAddr
+	//var e error
+	//
+	//addr.Port, e = strconv.Atoi(GetPort())
+	//if e != nil {
+	//	log.Println(e.Error())
+	//}
+	//addr.IP = net.ParseIP(GetAddr())
+	sadr := strings.Join([]string{Addr(), Port()},
+		":")
 
-	addr.Port, e = strconv.Atoi(GetPort())
+	addr, e := net.ResolveTCPAddr("tcp4", sadr)
+	if e != nil {
+		return nil
+	}
 
-	log.Println(e.Error())
-
+	return addr
 }
