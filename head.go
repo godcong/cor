@@ -11,18 +11,24 @@ type FLAG_TYPE int
 
 const (
 	FLAG_IO FLAG_TYPE = iota
-	FLAG_FOO1
+	FLAG_ST
 	FLAG_FOO2
 	FLAG_FOO3
 	FLAG_MAX
 )
 
 const (
-	FLAG_IO_RW  = 1 << iota
-	FLAG_IO_ST1 = 1 << iota
-	FLAG_IO_ST2 = 1 << iota
-	FLAG_IO_ST3 = 1 << iota
-	FLAG_IO_ST4 = 1 << iota
+	ST_JSON = iota
+	ST_GOB
+	ST_PROTCOL
+)
+
+const (
+	IO_RW  = 1 << iota
+	IO_ST1 = 1 << iota
+	IO_ST2 = 1 << iota
+	IO_ST3 = 1 << iota
+	IO_ST4 = 1 << iota
 )
 
 type head struct {
@@ -33,6 +39,7 @@ type head struct {
 
 type Header interface {
 	ReadOrWrite() bool
+	Serialize() int
 	Flag(int) uint8
 	SetFlag(ft FLAG_TYPE, ui uint8) error
 	Size() uint64
@@ -84,13 +91,31 @@ func (h *head) Bytes() []byte {
 }
 
 func (h *head) ReadOrWrite() bool {
-	rw := h.flag[FLAG_IO] & FLAG_IO_RW
+	rw := h.flag[FLAG_IO] & IO_RW
 
 	if rw != 0 {
 		return FLAG_CLIENT_READ
 	}
 
 	return FLAG_CLIENT_WRITE
+}
+
+func (h *head) SetIO(b bool) {
+
+	io := h.flag[FLAG_IO] & 254
+	h.flag[FLAG_IO] = io | uint8(b)
+}
+
+func (h *head) IO() bool {
+	return h.ReadOrWrite()
+}
+
+func (h *head) SetSerialize(s uint8) error {
+	return h.SetFlag(FLAG_ST, s)
+}
+
+func (h *head) Serialize() uint8 {
+	return h.flag[FLAG_ST]
 }
 
 func (h *head) SetFlag(ft FLAG_TYPE, ui uint8) error {

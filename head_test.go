@@ -1,16 +1,16 @@
 package cor
 
 import (
+	"fmt"
 	"log"
+	"strconv"
 	"testing"
 )
 
 func TestHead_ReadOrWrite(t *testing.T) {
-	log.Println(FLAG_IO_RW)
-	log.Println(FLAG_IO_ST1)
-	log.Println(FLAG_IO_ST2)
-	log.Println(FLAG_IO_ST3)
-	log.Println(FLAG_IO_ST4)
+	log.Println(FLAG_IO)
+	log.Println(FLAG_ST)
+
 	head := NewHead(nil)
 	head.SetFlag(FLAG_IO, 254)
 	head.SetSize(123456789)
@@ -21,7 +21,7 @@ func TestHead_ReadOrWrite(t *testing.T) {
 func TestHead_Bytes(t *testing.T) {
 	head := NewHead(nil)
 	head.SetFlag(FLAG_IO, 254)
-	head.SetFlag(FLAG_FOO1, 254)
+	head.SetFlag(FLAG_ST, 254)
 	head.SetSize(123456789)
 	log.Println(head.Bytes())
 
@@ -30,10 +30,16 @@ func TestHead_Bytes(t *testing.T) {
 func TestNewHead(t *testing.T) {
 	head := NewHead(nil)
 	head.SetFlag(FLAG_IO, 254)
-	head.SetFlag(FLAG_FOO1, 254)
+	head.SetFlag(FLAG_ST, 254)
 	head.SetSize(123456789)
 	log.Println(head.Bytes())
 
 	head2 := NewHead(head.Bytes())
 	log.Println(head2.Bytes())
+
+	fmt.Println(strconv.ParseInt("255", 2, 10))
+}
+
+func TestHead_SetFlag(t *testing.T) {
+
 }

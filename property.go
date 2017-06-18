@@ -49,14 +49,6 @@ func NetType() string {
 }
 
 func TCPAddr() *net.TCPAddr {
-	//var addr net.TCPAddr
-	//var e error
-	//
-	//addr.Port, e = strconv.Atoi(GetPort())
-	//if e != nil {
-	//	log.Println(e.Error())
-	//}
-	//addr.IP = net.ParseIP(GetAddr())
 	sadr := strings.Join([]string{Addr(), Port()},
 		":")
 
