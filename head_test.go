@@ -62,8 +62,12 @@ func TestFLAG_TAG_BitSet(t *testing.T) {
 
 	}
 }
+func TestParseUint64to8(t *testing.T) {
+	log.Println(ParseUint64to8(4294967297))
+}
 
-func TestFLAG_TAG_GetUints(t *testing.T) {
-	f := FLAG_TAG(1)
-	log.Println(f.GetUints())
+func TestParseUint8to64(t *testing.T) {
+	u, _ := ParseUint64to8(4294967297)
+	log.Println(ParseUint8to64(u))
+
 }

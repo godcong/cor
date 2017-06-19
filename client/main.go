@@ -27,7 +27,8 @@ func (c *client) Start() {
 	h := cor.NewHead(nil)
 	str := "123456456456fdsafdsfdsafsdafsdafdsafdsa"
 	h.SetSize(uint64(len(str)))
-	h.SetFlag(cor.FLAG_IO, 1)
+	//h.SetFlag(cor.FLAG_STABLE, 1)
+	h.SetIO(cor.FLAG_CLIENT_READ)
 	log.Println("call run")
 	//conn, e := net.Dial(cor.ConnType(), cor.TCPAddr().String())
 

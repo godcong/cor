@@ -92,24 +92,14 @@ func (h *head) Bytes() []byte {
 }
 
 func (h *head) ReadOrWrite() bool {
-	rw := h.stable[FLAG_STABLE] & STABLE_IO
+	ft := FLAG_TAG(h.stable[FLAG_STABLE])
+	return ft.BitGet(STABLE_IO)
 
-	if rw != 0 {
-		return FLAG_CLIENT_READ
-	}
-
-	return FLAG_CLIENT_WRITE
 }
 
 func (h *head) SetIO(b bool) {
-
-	i := 0
-	if b {
-		i = 1
-	}
-
-	io := h.stable[FLAG_STABLE] & 254
-	h.stable[FLAG_STABLE] = uint8(io) ^ uint8(i)
+	ft := FLAG_TAG(h.stable[FLAG_STABLE])
+	h.stable[FLAG_STABLE] = ft.BitSet(b, STABLE_IO).Uint8()
 }
 
 func (h *head) IO() bool {
@@ -165,10 +155,10 @@ func ReadHeader(reader io.Reader) (*head, error) {
 func WriteHeader(writer io.Writer, h *head) error {
 	log.Println(h.Bytes())
 	if i, e := writer.Write(h.Bytes()); e != nil {
-		log.Println("write1", i, e)
+		log.Println("w,e:", i, e)
 		return e
 	} else {
-		log.Println("write2", i, e)
+		log.Println("w:", i, e)
 	}
 
 	return nil
@@ -176,30 +166,32 @@ func WriteHeader(writer io.Writer, h *head) error {
 
 //b:true false
 //bit: 0 1 2 3 4 5 6 7
-func (f *FLAG_TAG) BitSet(b bool, bit uint) {
+func (f FLAG_TAG) BitSet(b bool, bit uint) FLAG_TAG {
 
 	if bit > 7 {
-		*f = 0
+		return 0
 		panic(ERROR_BITS_SET_OVERFLOW)
 	}
 	bits := uint8(^(1 << bit))
-	*f &= FLAG_TAG(bits)
+	f &= FLAG_TAG(bits)
 
 	if b {
-		*f |= 1 << bit
+		f |= 1 << bit
 	}
-	log.Println("set", strconv.FormatUint(uint64(*f), 2))
+	log.Println("set", strconv.FormatUint(uint64(f), 2))
+	return f
+
 }
 
-func (f *FLAG_TAG) BitGet(bit uint) bool {
+func (f FLAG_TAG) BitGet(bit uint) bool {
 	if bit > 7 {
 		return false
 	}
 
 	bits := uint8(1 << bit)
-	b := uint8(*f) & bits >> bit
+	b := uint8(f) & bits >> bit
 
-	log.Println("get", strconv.FormatUint(uint64(*f), 2))
+	log.Println("get", strconv.FormatUint(uint64(f), 2))
 	return b == 1
 }
 
@@ -207,19 +199,28 @@ func (f *FLAG_TAG) SetUints([]uint8) {
 
 }
 
-func (f *FLAG_TAG) GetUints() []uint8 {
-	b_buf := bytes.NewBuffer(make([]byte, 4))
-
-	if e := binary.Write(b_buf, binary.BigEndian, f); e != nil {
-		log.Println(e)
-	}
-	log.Println(b_buf.Bytes())
-
-	return []uint8(b_buf.Bytes())
+func (f FLAG_TAG) Uint8() uint8 {
+	return uint8(f)
 }
 
-func (f *FLAG_TAG) Uint8() uint8 {
-	return uint8(*f)
+func ParseUint64to8(u uint64) ([]uint8, error) {
+	b_buf := bytes.NewBuffer(nil)
+	if e := binary.Write(b_buf, binary.BigEndian, &u); e != nil {
+		log.Println(e)
+		return nil, ERROR_PARSE_TO_UINT8
+	}
+	return b_buf.Bytes(), nil
+}
+
+func ParseUint8to64(u []uint8) (uint64, error) {
+	var u64 uint64
+
+	b_buf := bytes.NewBuffer(u)
+	if e := binary.Read(b_buf, binary.BigEndian, &u64); e != nil {
+		log.Println(e)
+		return 0, ERROR_PARSE_TO_UINT64
+	}
+	return u64, nil
 }
 
 //func (f *FLAG_TAG) Uint16() uint16 {
