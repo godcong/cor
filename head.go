@@ -5,14 +5,16 @@ import (
 	"encoding/binary"
 	"io"
 	"log"
+	"strconv"
 )
 
 type FLAG_TYPE int
+type FLAG_TAG uint8
 
 const (
-	FLAG_IO FLAG_TYPE = iota
-	FLAG_ST
-	FLAG_FOO2
+	FLAG_STABLE FLAG_TYPE = iota
+	FLAG_SERIALIZE
+	FLAG_CUSTOM
 	FLAG_FOO3
 	FLAG_MAX
 )
@@ -24,17 +26,17 @@ const (
 )
 
 const (
-	IO_RW  = 1 << iota
-	IO_ST1 = 1 << iota
-	IO_ST2 = 1 << iota
-	IO_ST3 = 1 << iota
-	IO_ST4 = 1 << iota
+	STABLE_IO     = 1 << iota
+	STABLE_CUSTOM = 1 << iota
+	STABLE_ST2    = 1 << iota
+	STABLE_ST3    = 1 << iota
+	STABLE_ST4    = 1 << iota
 )
 
 type head struct {
-	flag [4]uint8
-	size uint64
-	tmp  uint32
+	stable [4]uint8
+	size   uint64
+	custom [4]uint8
 }
 
 type Header interface {
@@ -42,8 +44,8 @@ type Header interface {
 	Serialize() int
 	Flag(int) uint8
 	SetFlag(ft FLAG_TYPE, ui uint8) error
-	Size() uint64
-	SetSize(uint64)
+	Size() uint32
+	SetSize(uint32)
 	HeadWidth() int
 }
 
@@ -55,9 +57,8 @@ func NewHead(b []byte) *head {
 	if b == nil {
 		return h
 	}
-
-	for i := range h.flag {
-		h.flag[i] = b[i]
+	for i := range h.stable {
+		h.stable[i] = b[i]
 	}
 
 	b_buf := bytes.NewBuffer(b[4:12])
@@ -68,7 +69,7 @@ func NewHead(b []byte) *head {
 
 	b_buf = bytes.NewBuffer(b[12:16])
 
-	if e := binary.Read(b_buf, binary.BigEndian, &h.tmp); e != nil {
+	if e := binary.Read(b_buf, binary.BigEndian, &h.custom); e != nil {
 		return h
 	}
 
@@ -77,13 +78,13 @@ func NewHead(b []byte) *head {
 }
 
 func (h *head) Bytes() []byte {
-	b_buf := bytes.NewBuffer(h.flag[:])
 
+	b_buf := bytes.NewBuffer(h.stable[:])
 	if e := binary.Write(b_buf, binary.BigEndian, &h.size); e != nil {
 		log.Println(e)
 	}
 
-	if e := binary.Write(b_buf, binary.BigEndian, &h.tmp); e != nil {
+	if e := binary.Write(b_buf, binary.BigEndian, &h.custom); e != nil {
 		log.Println(e)
 	}
 
@@ -91,7 +92,7 @@ func (h *head) Bytes() []byte {
 }
 
 func (h *head) ReadOrWrite() bool {
-	rw := h.flag[FLAG_IO] & IO_RW
+	rw := h.stable[FLAG_STABLE] & STABLE_IO
 
 	if rw != 0 {
 		return FLAG_CLIENT_READ
@@ -102,8 +103,13 @@ func (h *head) ReadOrWrite() bool {
 
 func (h *head) SetIO(b bool) {
 
-	io := h.flag[FLAG_IO] & 254
-	h.flag[FLAG_IO] = io | uint8(b)
+	i := 0
+	if b {
+		i = 1
+	}
+
+	io := h.stable[FLAG_STABLE] & 254
+	h.stable[FLAG_STABLE] = uint8(io) ^ uint8(i)
 }
 
 func (h *head) IO() bool {
@@ -111,16 +117,16 @@ func (h *head) IO() bool {
 }
 
 func (h *head) SetSerialize(s uint8) error {
-	return h.SetFlag(FLAG_ST, s)
+	return h.SetFlag(FLAG_STABLE, s)
 }
 
 func (h *head) Serialize() uint8 {
-	return h.flag[FLAG_ST]
+	return h.stable[FLAG_SERIALIZE]
 }
 
 func (h *head) SetFlag(ft FLAG_TYPE, ui uint8) error {
-	if h.flag[ft] != ui {
-		h.flag[ft] = ui
+	if h.stable[ft] != ui {
+		h.stable[ft] = ui
 		return nil
 	}
 	return ERROR_HEADER_FLAG_SET_ERROR
@@ -167,3 +173,63 @@ func WriteHeader(writer io.Writer, h *head) error {
 
 	return nil
 }
+
+//b:true false
+//bit: 0 1 2 3 4 5 6 7
+func (f *FLAG_TAG) BitSet(b bool, bit uint) {
+
+	if bit > 7 {
+		*f = 0
+		panic(ERROR_BITS_SET_OVERFLOW)
+	}
+	bits := uint8(^(1 << bit))
+	*f &= FLAG_TAG(bits)
+
+	if b {
+		*f |= 1 << bit
+	}
+	log.Println("set", strconv.FormatUint(uint64(*f), 2))
+}
+
+func (f *FLAG_TAG) BitGet(bit uint) bool {
+	if bit > 7 {
+		return false
+	}
+
+	bits := uint8(1 << bit)
+	b := uint8(*f) & bits >> bit
+
+	log.Println("get", strconv.FormatUint(uint64(*f), 2))
+	return b == 1
+}
+
+func (f *FLAG_TAG) SetUints([]uint8) {
+
+}
+
+func (f *FLAG_TAG) GetUints() []uint8 {
+	b_buf := bytes.NewBuffer(make([]byte, 4))
+
+	if e := binary.Write(b_buf, binary.BigEndian, f); e != nil {
+		log.Println(e)
+	}
+	log.Println(b_buf.Bytes())
+
+	return []uint8(b_buf.Bytes())
+}
+
+func (f *FLAG_TAG) Uint8() uint8 {
+	return uint8(*f)
+}
+
+//func (f *FLAG_TAG) Uint16() uint16 {
+//	return uint16(*f)
+//}
+//
+//func (f *FLAG_TAG) Uint32() uint32 {
+//	return uint32(*f)
+//}
+//
+//func (f *FLAG_TAG) Uint64() uint64 {
+//	return uint64(*f)
+//}
