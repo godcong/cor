@@ -4,16 +4,17 @@ import (
 	"log"
 	"strconv"
 	"testing"
+	"math/bits"
 )
 
 func TestHead_ReadOrWrite(t *testing.T) {
 	log.Println(FLAG_STABLE)
 	log.Println(FLAG_SERIALIZE)
-
+	bits.ReverseBytes()
 	head := NewHead(nil)
 	head.SetFlag(FLAG_STABLE, 254)
 	head.SetSize(123456789)
-	log.Println(head.ReadOrWrite())
+	log.Println(head.Reader())
 	log.Println("width", head.HeadWidth())
 
 }
@@ -46,11 +47,11 @@ func TestHead_SetFlag(t *testing.T) {
 func TestHead_IO(t *testing.T) {
 	head := NewHead(nil)
 	head.SetFlag(FLAG_STABLE, 0)
-	head.SetIO(true)
-	head.SetIO(false)
+	head.SetRW(true)
+	head.SetRW(false)
 	head.SetFlag(FLAG_STABLE, 255)
-	head.SetIO(true)
-	head.SetIO(false)
+	head.SetRW(true)
+	head.SetRW(false)
 }
 
 func TestFLAG_TAG_BitSet(t *testing.T) {

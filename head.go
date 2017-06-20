@@ -33,6 +33,12 @@ const (
 	STABLE_ST4    = 1 << iota
 )
 
+const (
+	SERIALIZE_JSON   = 1 << iota
+	SERIALIZE_PROTOC = 1 << iota
+	SERIALIZE_GOB    = 1 << iota
+)
+
 type head struct {
 	stable [4]uint8
 	size   uint64
@@ -40,17 +46,27 @@ type head struct {
 }
 
 type Header interface {
-	ReadOrWrite() bool
-	Serialize() int
-	Flag(int) uint8
+	Reader() bool
+	Writer() bool
+	SetRW(bool)
+	Serialize() uint8
+	Flag(uint) uint8
 	SetFlag(ft FLAG_TYPE, ui uint8) error
-	Size() uint32
-	SetSize(uint32)
+	Size() uint64
+	SetSize(uint64)
 	HeadWidth() int
 }
 
-const FLAG_CLIENT_READ = true
-const FLAG_CLIENT_WRITE = false
+const IO_READ = true
+const IO_WRITE = false
+
+var _ Header = NewHead(nil)
+
+func init() {
+	//var header Header
+	//header = Header(NewHead(nil))
+	//log.Println(header)
+}
 
 func NewHead(b []byte) *head {
 	h := new(head)
@@ -91,19 +107,23 @@ func (h *head) Bytes() []byte {
 	return b_buf.Bytes()
 }
 
-func (h *head) ReadOrWrite() bool {
+func (h *head) Reader() bool {
+	ft := FLAG_TAG(h.stable[FLAG_STABLE])
+	return !ft.BitGet(STABLE_IO)
+}
+
+func (h *head) Writer() bool {
 	ft := FLAG_TAG(h.stable[FLAG_STABLE])
 	return ft.BitGet(STABLE_IO)
-
 }
 
-func (h *head) SetIO(b bool) {
+func (h *head) Flag(uint) uint8 {
+	return 0
+}
+
+func (h *head) SetRW(b bool) {
 	ft := FLAG_TAG(h.stable[FLAG_STABLE])
 	h.stable[FLAG_STABLE] = ft.BitSet(b, STABLE_IO).Uint8()
-}
-
-func (h *head) IO() bool {
-	return h.ReadOrWrite()
 }
 
 func (h *head) SetSerialize(s uint8) error {
