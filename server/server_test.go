@@ -9,10 +9,10 @@ import (
 )
 
 func TestWrite(t *testing.T) {
-	msg := &Helloworld{
-		Id1: proto.Int32(101),
-		Str: proto.String("hello"),
-	} //msg init
+	//msg := &Helloworld{
+	//	Id1: proto.Int32(101),
+	//	Str: proto.String("hello"),
+	//} //msg init
 
 	path := string("./log.txt")
 	f, err := os.Create(path)

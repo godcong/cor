@@ -20,23 +20,20 @@ const (
 )
 
 const (
-	ST_JSON = iota
-	ST_GOB
-	ST_PROTCOL
-)
-
-const (
 	STABLE_IO     = 1 << iota
 	STABLE_CUSTOM = 1 << iota
-	STABLE_ST2    = 1 << iota
-	STABLE_ST3    = 1 << iota
-	STABLE_ST4    = 1 << iota
+	STABLE_UNDEF1 = 1 << iota
+	STABLE_UNDEF2 = 1 << iota
+	STABLE_UNDEF3 = 1 << iota
+	STABLE_UNDEF4 = 1 << iota
+	STABLE_UNDEF5 = 1 << iota
+	STABLE_UNDEF6 = 1 << iota
 )
 
 const (
-	SERIALIZE_JSON   = 1 << iota
-	SERIALIZE_PROTOC = 1 << iota
-	SERIALIZE_GOB    = 1 << iota
+	SERIALIZE_JSON = iota
+	SERIALIZE_PROTOC
+	SERIALIZE_GOB
 )
 
 type head struct {
@@ -46,15 +43,18 @@ type head struct {
 }
 
 type Header interface {
-	Reader() bool
-	Writer() bool
+	SetCustom(bool)
+	Custom() bool
+	RW() bool
 	SetRW(bool)
 	Serialize() uint8
+	SetSerialize(s uint8)
 	Flag(uint) uint8
-	SetFlag(ft FLAG_TYPE, ui uint8) error
+	SetFlag(ft FLAG_TYPE, ui uint8)
 	Size() uint64
 	SetSize(uint64)
 	HeadWidth() int
+	Bytes() []byte
 }
 
 const IO_READ = true
@@ -63,9 +63,7 @@ const IO_WRITE = false
 var _ Header = NewHead(nil)
 
 func init() {
-	//var header Header
-	//header = Header(NewHead(nil))
-	//log.Println(header)
+
 }
 
 func NewHead(b []byte) *head {
@@ -107,12 +105,7 @@ func (h *head) Bytes() []byte {
 	return b_buf.Bytes()
 }
 
-func (h *head) Reader() bool {
-	ft := FLAG_TAG(h.stable[FLAG_STABLE])
-	return !ft.BitGet(STABLE_IO)
-}
-
-func (h *head) Writer() bool {
+func (h *head) RW() bool {
 	ft := FLAG_TAG(h.stable[FLAG_STABLE])
 	return ft.BitGet(STABLE_IO)
 }
@@ -126,20 +119,28 @@ func (h *head) SetRW(b bool) {
 	h.stable[FLAG_STABLE] = ft.BitSet(b, STABLE_IO).Uint8()
 }
 
-func (h *head) SetSerialize(s uint8) error {
-	return h.SetFlag(FLAG_STABLE, s)
+func (h *head) SetSerialize(s uint8) {
+	h.SetFlag(FLAG_SERIALIZE, s)
 }
 
 func (h *head) Serialize() uint8 {
 	return h.stable[FLAG_SERIALIZE]
 }
 
-func (h *head) SetFlag(ft FLAG_TYPE, ui uint8) error {
+func (h *head) SetFlag(ft FLAG_TYPE, ui uint8) {
 	if h.stable[ft] != ui {
 		h.stable[ft] = ui
-		return nil
 	}
-	return ERROR_HEADER_FLAG_SET_ERROR
+}
+
+func (h *head) Custom() bool {
+	ft := FLAG_TAG(h.stable[FLAG_STABLE])
+	return ft.BitGet(STABLE_CUSTOM)
+}
+
+func (h *head) SetCustom(b bool) {
+	ft := FLAG_TAG(h.stable[FLAG_STABLE])
+	h.stable[FLAG_STABLE] = ft.BitSet(b, STABLE_CUSTOM).Uint8()
 }
 
 func (h *head) SetSize(size uint64) {
@@ -158,7 +159,7 @@ func (ft *FLAG_TYPE) Int() int {
 	return int(*ft)
 }
 
-func ReadHeader(reader io.Reader) (*head, error) {
+func ReadHeader(reader io.Reader) (Header, error) {
 	b := make([]byte, 16)
 	if i, e := reader.Read(b); e != nil {
 		log.Println(i, b, e)
@@ -172,7 +173,7 @@ func ReadHeader(reader io.Reader) (*head, error) {
 
 }
 
-func WriteHeader(writer io.Writer, h *head) error {
+func WriteHeader(writer io.Writer, h Header) error {
 	log.Println(h.Bytes())
 	if i, e := writer.Write(h.Bytes()); e != nil {
 		log.Println("w,e:", i, e)

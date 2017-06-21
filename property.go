@@ -17,6 +17,7 @@ func Load(s string) error {
 	} else {
 		return e
 	}
+
 	return nil
 }
 

@@ -4,19 +4,17 @@ import (
 	"log"
 	"strconv"
 	"testing"
-	"math/bits"
 )
 
 func TestHead_ReadOrWrite(t *testing.T) {
 	log.Println(FLAG_STABLE)
 	log.Println(FLAG_SERIALIZE)
-	bits.ReverseBytes()
+
 	head := NewHead(nil)
 	head.SetFlag(FLAG_STABLE, 254)
 	head.SetSize(123456789)
 	log.Println(head.Reader())
 	log.Println("width", head.HeadWidth())
-
 }
 func TestHead_Bytes(t *testing.T) {
 	head := NewHead(nil)
