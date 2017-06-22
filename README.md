@@ -1,7 +1,8 @@
 # cor
 
 write the server code as:
-  corlog.LogToFile("server")
+
+  	corlog.LogToFile("server")
 	serv := cor.NewServer()
 	//serv.Head().SetRW(true)
 	serv.WriteCallback(func(h cor.Header) (interface{}, error) {
@@ -24,7 +25,8 @@ write the server code as:
 
 
 write the client code as:
-  cli := cor.NewClient()
+
+	  cli := cor.NewClient()
 	//cli.Head().SetRW(true)
 
 	cli.WriteCallback(func(h cor.Header) (interface{}, error) {
